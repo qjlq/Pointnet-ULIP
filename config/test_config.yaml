@@ -1,0 +1,28 @@
+data:
+  root_dir: "../pointnet_project/Pointnet_Pointnet2_pytorch/data/modelnet40_normal_resampled"
+  train_split: "train"
+  test_split: "test"
+  num_points: 1024
+  normal_channel: false
+
+models:
+  pointnet_checkpoint: "../pointnet_project/Pointnet_Pointnet2_pytorch/log/classification/pointnet2_ssg_wo_normals/checkpoints/best_model.pth"
+  ulip_checkpoint: "../checkpoints/ulip2_pointbert_weights.pth"
+
+extraction:
+  batch_size: 8
+  device: "cuda"
+  cache_dir: "feature_cache_test"
+  skip_if_cached: true
+
+training:
+  epochs: 2
+  batch_size: 4
+  learning_rate: 0.001
+  checkpoint_dir: "checkpoints_test"
+  save_interval: 1
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "fusion_pipeline_test.log"

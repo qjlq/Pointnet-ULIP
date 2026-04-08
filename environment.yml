@@ -1,0 +1,66 @@
+name: fusion_pipeline
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  # Python version - compatible with subprojects (ULIP requires 3.7.15, pipeline works with 3.8+)
+  - python=3.8
+  
+  # Core PyTorch with CUDA 12.1 (compatible with CUDA 13 driver via forward compatibility)
+  # Note: PyTorch built for CUDA 12.1 works with CUDA 13 driver as confirmed by user
+  # Using PyTorch 1.10.1 as compromise between PointNet2 (1.6.0) and ULIP (1.10.1) requirements
+  # The pipeline also works with PyTorch 2.5.1 but 1.10.1 ensures compatibility with subprojects
+  - pytorch=1.10.1
+  - torchvision=0.11.2
+  - torchaudio=0.10.1
+  - pytorch-cuda=12.1
+  
+  # Core scientific computing
+  - numpy
+  - scipy
+  - scikit-learn
+  
+  # Data handling
+  - h5py=3.16.0
+  - pyyaml
+  - pandas
+  
+  # Visualization and progress
+  - matplotlib
+  - tqdm
+  - termcolor=1.1.0
+  
+  # File and system utilities
+  
+  # Logging and experiment tracking
+  - wandb=0.13.3
+  
+  # NLP/text processing (for ULIP)
+  - ftfy=6.0.1
+  - regex=2022.10.31
+  
+  # Deep learning utilities
+  - easydict=1.9
+  - timm=0.4.12
+  
+  # OpenCLIP for ULIP and additional pip packages
+  - pip
+  - pip:
+    - open-clip-torch==2.24.0
+    - pyyaml_env_tag==0.1
+    - tensorboard
+    - lmdb==1.3.0
+    - open3d==0.19.0
+    # Checkpoint download utilities
+    - huggingface-hub
+    - requests
+    # Additional pip-only packages
+    
+  # Optional: for PointNet2 visualizer (requires g++)
+  # - gcc_linux-64  # Uncomment if building custom CUDA extensions
+  # - gxx_linux-64
+  
+# Platform specific dependencies (Linux with CUDA)
+# Remove or adjust for macOS/Windows
