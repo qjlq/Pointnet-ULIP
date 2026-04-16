@@ -24,6 +24,9 @@ def parse_args(argv=None):
     parser.add_argument("--learning_rate", type=float, default=0.001, help="Learning rate")
     parser.add_argument("--checkpoint_dir", type=str, default="checkpoints", help="Directory for checkpoints")
     parser.add_argument("--output_dir", type=str, default="training_output", help="Output directory")
+    parser.add_argument("--fusion_type", type=str, default="concat",
+                        choices=["concat", "normalized", "gated"],
+                        help="Type of fusion mechanism: concat (original), normalized, or gated")
     return parser.parse_args(argv)
 
 def load_features(feature_path: str) -> Dict[str, np.ndarray]:
@@ -119,15 +122,37 @@ def main():
     pointnet_dim = train_data['pointnet'].shape[1]
     ulip_dim = train_data['ulip'].shape[1]
     
-    # Label range validation (ModelNet40: 0-39)
+    # Infer number of classes from labels
     train_labels = train_data['labels']
     test_labels = test_data['labels']
-    if train_labels.min() < 0 or train_labels.max() >= 40:
-        logger.warning(f"Train labels out of expected range [0, 39]: min={train_labels.min()}, max={train_labels.max()}")
-    if test_labels.min() < 0 or test_labels.max() >= 40:
-        logger.warning(f"Test labels out of expected range [0, 39]: min={test_labels.min()}, max={test_labels.max()}")
     
-    model = FusionModel(pointnet_dim=pointnet_dim, ulip_dim=ulip_dim, num_classes=40)
+    # Check for negative labels
+    if train_labels.min() < 0:
+        logger.warning(f"Train labels have negative values: min={train_labels.min()}")
+    if test_labels.min() < 0:
+        logger.warning(f"Test labels have negative values: min={test_labels.min()}")
+    
+    # Calculate number of classes
+    num_classes = int(max(train_labels.max(), test_labels.max())) + 1
+    logger.info(f"Inferred number of classes: {num_classes}")
+    logger.info(f"Train labels range: {train_labels.min()} to {train_labels.max()}")
+    logger.info(f"Test labels range: {test_labels.min()} to {test_labels.max()}")
+    
+    # Initialize model based on fusion type
+    if args.fusion_type == "concat":
+        from fusion_model import FusionModel
+        model = FusionModel(pointnet_dim=pointnet_dim, ulip_dim=ulip_dim, num_classes=num_classes)
+    elif args.fusion_type == "normalized":
+        from fusion_model import NormalizedFusionHead
+        model = NormalizedFusionHead(geo_dim=pointnet_dim, vlm_dim=ulip_dim,
+                                     hidden_dim=256, num_classes=num_classes,
+                                     norm_mode='l2')
+    elif args.fusion_type == "gated":
+        from fusion_model import GatedFusionHead
+        model = GatedFusionHead(geo_dim=pointnet_dim, vlm_dim=ulip_dim,
+                                hidden_dim=256, num_classes=num_classes)
+    else:
+        raise ValueError(f"Unknown fusion type: {args.fusion_type}")
     
     # Create directories
     os.makedirs(checkpoint_dir, exist_ok=True)

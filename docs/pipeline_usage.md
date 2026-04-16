@@ -15,6 +15,9 @@ fusion_experiments/fusion_pipeline_YYYYMMDD_HHMMSS/
 ├── command.txt          # Executed command
 ├── pipeline.log         # Execution logs
 ├── features/            # Extracted features (.npz)
+│   ├── train_features.npz
+│   ├── val_features.npz
+│   └── test_features.npz
 ├── checkpoints/         # Training checkpoints
 └── training_output/     # Final models and results
 ```
@@ -34,6 +37,8 @@ fusion_experiments/fusion_pipeline_YYYYMMDD_HHMMSS/
 - `extraction.batch_size`: Batch size for feature extraction (default: 64)
 - `extraction.device`: Device to use ("cuda" or "cpu")
 - `extraction.cache_dir`: Directory for caching extracted features
+- `extraction.val_ratio`: Proportion of training data to use for validation (default: 0.2)
+- `extraction.split_seed`: Random seed for reproducible train/validation splits (default: 42)
 
 ### Training Parameters
 - `training.epochs`: Number of training epochs (default: 50)

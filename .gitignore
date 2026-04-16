@@ -37,23 +37,47 @@ venv.bak/
 *.swo
 *~
 
-# Data files and checkpoints (excluded for submission)
+# Project specific
+feature_cache/
+feature_cache_*/
+checkpoints/
+training_output/
+fusion_experiments/
+fusion_pipeline.log
+pipeline.log
+results/
+sampled_data/
+test_fusion_run/
+test_submission/
+
+# Data files
 *.npz
 *.pth
 *.pt
 *.bin
-*.log
-*.pid
-
-# Project-specific exclusions
-feature_cache/
-checkpoints/
-training_output/
-fusion_experiments/
-results/
-sampled_data/
-ablation_results/
 
 # Temporary files
 .DS_Store
 Thumbs.db
+
+# Worktrees and temporary files
+.worktrees/
+*.log
+*.pid
+
+# Experimental results and submissions
+ablation_results_real/
+fusion_pipeline_submission/
+fusion_pipeline_submission.zip
+REPRODUCE_REAL_FEATURES_ABLATION.md
+run_ablation_real.sh
+scripts/extract_test_only.sh
+
+# ScanObjectNN data (already in submodule)
+pointnet_project/Pointnet_Pointnet2_pytorch/data/scanobjectnn/
+pointnet_project/Pointnet_Pointnet2_pytorch/data/index.html
+
+# Validation outputs
+validation_output/
+test_validation/
+scanobjectnn_validation/

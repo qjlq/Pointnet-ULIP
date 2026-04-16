@@ -2,6 +2,130 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+class FeatureNormalizer(nn.Module):
+    """Normalize features with optional learnable scaling.
+    
+    Modes:
+        'l2': L2 normalization (divides by L2 norm)
+        'layer': LayerNorm (learnable affine)
+        'none': identity (no normalization)
+    """
+    def __init__(self, mode='l2', scale=True, dim=None):
+        super().__init__()
+        self.mode = mode
+        self.scale = scale
+        
+        if scale:
+            self.scale_param = nn.Parameter(torch.ones(1))
+        
+        if mode == 'layer':
+            self.layernorm = nn.LayerNorm(dim) if dim else nn.LayerNorm(1)
+    
+    def forward(self, x):
+        if self.mode == 'l2':
+            # L2 normalize along feature dimension
+            norm = torch.norm(x, p=2, dim=1, keepdim=True).clamp(min=1e-8)
+            x = x / norm
+            
+            if self.scale:
+                x = x * self.scale_param
+        elif self.mode == 'layer':
+            x = self.layernorm(x)
+        # 'none' does nothing
+        
+        return x
+    
+    def extra_repr(self):
+        return f"mode={self.mode}, scale={self.scale}"
+
+
+class NormalizedFusionHead(nn.Module):
+    """Fusion head with feature normalization before concatenation."""
+    def __init__(self, geo_dim, vlm_dim, hidden_dim=256, num_classes=40, 
+                 dropout_rate=0.3, norm_mode='l2'):
+        super().__init__()
+        
+        # Feature normalizers
+        self.geo_norm = FeatureNormalizer(mode=norm_mode, scale=True, dim=geo_dim)
+        self.vlm_norm = FeatureNormalizer(mode=norm_mode, scale=True, dim=vlm_dim)
+        
+        # Fusion MLP
+        self.fc1 = nn.Linear(geo_dim + vlm_dim, hidden_dim)
+        self.bn1 = nn.BatchNorm1d(hidden_dim)
+        self.dropout = nn.Dropout(dropout_rate)
+        self.fc2 = nn.Linear(hidden_dim, num_classes)
+        self.relu = nn.ReLU()
+        
+    def forward(self, geo_features, vlm_features):
+        # Normalize features
+        geo_norm = self.geo_norm(geo_features)
+        vlm_norm = self.vlm_norm(vlm_features)
+        
+        # Concatenate normalized features
+        fused = torch.cat([geo_norm, vlm_norm], dim=1)
+        
+        # MLP classification
+        out = self.fc1(fused)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.dropout(out)
+        out = self.fc2(out)
+        
+        return out
+
+
+class GatedFusionHead(nn.Module):
+    """Fusion head with gated feature weighting before concatenation."""
+    def __init__(self, geo_dim, vlm_dim, hidden_dim=256, num_classes=40, 
+                 dropout_rate=0.3, gate_hidden_dim=128):
+        super().__init__()
+        self.geo_dim = geo_dim
+        self.vlm_dim = vlm_dim
+        
+        # Gate networks: take concatenated features, output gate vectors for each feature type
+        self.gate_network = nn.Sequential(
+            nn.Linear(geo_dim + vlm_dim, gate_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(gate_hidden_dim, geo_dim + vlm_dim),
+            nn.Sigmoid()
+        )
+        
+        # Fusion MLP (same as original)
+        self.fc1 = nn.Linear(geo_dim + vlm_dim, hidden_dim)
+        self.bn1 = nn.BatchNorm1d(hidden_dim)
+        self.dropout = nn.Dropout(dropout_rate)
+        self.fc2 = nn.Linear(hidden_dim, num_classes)
+        self.relu = nn.ReLU()
+        
+    def forward(self, geo_features, vlm_features):
+        # Concatenate features for gate computation
+        combined = torch.cat([geo_features, vlm_features], dim=1)
+        
+        # Compute gates (values between 0 and 1)
+        gates = self.gate_network(combined)
+        
+        # Split gates for geo and vlm features
+        geo_gate = gates[:, :self.geo_dim]
+        vlm_gate = gates[:, self.geo_dim:self.geo_dim + self.vlm_dim]
+        
+        # Apply gating
+        gated_geo = geo_features * geo_gate
+        gated_vlm = vlm_features * vlm_gate
+        
+        # Concatenate gated features
+        fused = torch.cat([gated_geo, gated_vlm], dim=1)
+        
+        # MLP classification
+        out = self.fc1(fused)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.dropout(out)
+        out = self.fc2(out)
+        
+        return out
+
+
 class FeatureFusionHead(nn.Module):
     """Feature fusion head combining geometric and semantic features.
     

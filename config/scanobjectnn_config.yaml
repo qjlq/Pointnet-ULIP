@@ -1,0 +1,35 @@
+data:
+  root_dir: "pointnet_project/Pointnet_Pointnet2_pytorch/data"
+  dataset_type: "scanobjectnn"
+  split: "main_split"
+  use_background: true
+  train_split_name: "train"
+  test_split_name: "test"
+  num_points: 1024
+  normal_channel: false
+  num_classes: 15
+
+models:
+  pointnet_checkpoint: "pointnet_project/Pointnet_Pointnet2_pytorch/log/classification/pointnet2_ssg_wo_normals/checkpoints/best_model.pth"
+  ulip_checkpoint: "checkpoints/ULIP-2-PointBERT-10k-xyzrgb-pc-vit_g-objaverse_shapenet-pretrained.pt"
+  openclip_checkpoint: "checkpoints/open_clip_pytorch_model.bin"
+
+extraction:
+  batch_size: 8
+  device: "cuda"
+  cache_dir: "scanobjectnn_feature_cache"
+  skip_if_cached: true
+  val_ratio: 0.2
+  split_seed: 42
+
+training:
+  epochs: 50
+  batch_size: 32
+  learning_rate: 0.001
+  checkpoint_dir: "scanobjectnn_checkpoints"
+  save_interval: 10
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "scanobjectnn_pipeline.log"

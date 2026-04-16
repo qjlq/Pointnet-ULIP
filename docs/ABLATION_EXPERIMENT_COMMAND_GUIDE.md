@@ -86,6 +86,7 @@ print(f'  Test: ULIP={test[\"ulip_features\"].shape}, PointNet={test[\"pointnet_
 # 使用真实ULIP特征（1280-dim）运行完整消融实验
 python scripts/run_ablation.py \
   --train_features "feature_cache_full/train_features.npz" \
+  --val_features "feature_cache_full/val_features.npz" \
   --test_features "feature_cache_full/test_features.npz" \
   --output_dir "ablation_results_real" \
   --epochs 50 \
@@ -100,6 +101,7 @@ python scripts/run_ablation.py \
 # 使用dummy ULIP特征（256-dim）运行完整消融实验
 python scripts/run_ablation.py \
   --train_features "ablation_features/train_features.npz" \
+  --val_features "ablation_features/val_features.npz" \
   --test_features "ablation_features/test_features.npz" \
   --output_dir "ablation_results_dummy" \
   --epochs 50 \
@@ -124,6 +126,7 @@ from scripts.run_ablation import main
 import shlex
 args = shlex.split('''
   --train_features ablation_features/train_features.npz
+  --val_features ablation_features/val_features.npz
   --test_features ablation_features/test_features.npz  
   --output_dir ablation_results_separate/pointnet_only
   --epochs 50
@@ -143,6 +146,7 @@ from scripts.run_ablation import main
 import shlex
 args = shlex.split('''
   --train_features ablation_features/train_features.npz
+  --val_features ablation_features/val_features.npz
   --test_features ablation_features/test_features.npz  
   --output_dir ablation_results_separate/ulip_only
   --epochs 50
@@ -162,6 +166,7 @@ from scripts.run_ablation import main
 import shlex
 args = shlex.split('''
   --train_features ablation_features/train_features.npz
+  --val_features ablation_features/val_features.npz
   --test_features ablation_features/test_features.npz  
   --output_dir ablation_results_separate/fusion
   --epochs 50
@@ -428,6 +433,7 @@ check_features('ablation_features/test_features.npz')
 ### 14. 设置环境变量（可选）
 ```bash
 # 设置PyTorch环境变量
+export PYTHONPATH="/media/SSD/OSshareSpace/localSpace/workPlace/sem2/ComputerCraph/opencode/fusion_pipeline_project:$PYTHONPATH"
 
 # 设置CUDA设备
 export CUDA_VISIBLE_DEVICES=0

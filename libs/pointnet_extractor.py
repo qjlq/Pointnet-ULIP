@@ -8,7 +8,7 @@ import torch.nn as nn
 
 # Get absolute path to pointnet_project relative to this file
 _CURRENT_DIR = Path(__file__).parent.absolute()
-_POINTNET_ROOT = _CURRENT_DIR / ".." / ".." / "pointnet_project" / "Pointnet_Pointnet2_pytorch"
+_POINTNET_ROOT = _CURRENT_DIR / ".." / "pointnet_project" / "Pointnet_Pointnet2_pytorch"
 _POINTNET_ROOT = _POINTNET_ROOT.resolve()
 
 # Add to sys.path (only if not already present)

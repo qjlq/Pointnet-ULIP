@@ -296,7 +296,7 @@ class ULIPExtractor:
         if checkpoint_path and os.path.exists(checkpoint_path):
             try:
                 # Add ULIP to path if not already
-                ulip_path = os.path.join(os.path.dirname(__file__), '..', '..', 'ULIP')
+                ulip_path = os.path.join(os.path.dirname(__file__), '..', 'ULIP')
                 if os.path.isdir(ulip_path):
                     if ulip_path not in sys.path:
                         sys.path.insert(0, ulip_path)
@@ -361,7 +361,7 @@ class ULIPExtractor:
                         
                         # Determine model architecture based on checkpoint name or default
                         # Currently hardcoded for ULIP-2 PointBERT colored model
-                        # TODO: infer from checkpoint metadata or make configurable
+
                         model_name = 'ULIP2_PointBERT_Colored'
                         
                         # Create model with dummy args

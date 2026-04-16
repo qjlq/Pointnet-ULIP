@@ -11,12 +11,14 @@ from project_utils.logger import PipelineLogger
 from project_utils.config_parser import ConfigParser
 from libs.pointnet_extractor import PointNetExtractor
 from libs.ulip_extractor import ULIPExtractor, calculate_safe_batch_size, check_gpu_memory_available
-from libs.dataset_loader import ModelNet40Loader
+from libs.dataset_loader import get_dataset_loader
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Extract features from PointNet2 and ULIP-2")
     parser.add_argument("--config", type=str, default="config/fusion_config.yaml", help="Path to config file")
-    parser.add_argument("--data_dir", type=str, help="ModelNet40 data directory")
+    parser.add_argument("--data_dir", type=str, help="Dataset root directory")
+    parser.add_argument("--dataset_type", type=str, default="modelnet40", 
+                        choices=["modelnet40", "scanobjectnn"], help="Dataset type")
     parser.add_argument("--pointnet_checkpoint", type=str, help="PointNet2 checkpoint path")
     parser.add_argument("--ulip_checkpoint", type=str, help="ULIP-2 checkpoint path")
     parser.add_argument("--openclip_checkpoint", type=str, help="OpenCLIP checkpoint path (local .bin file)")
@@ -24,6 +26,19 @@ def parse_args(argv=None):
     parser.add_argument("--device", type=str, default="cuda", help="Device to use (cuda/cpu)")
     parser.add_argument("--output_dir", type=str, default="feature_cache", help="Output directory for features")
     parser.add_argument("--skip_if_cached", action="store_true", help="Skip extraction if cached files exist")
+    parser.add_argument("--val_ratio", type=float, default=0.2, 
+                       help="Ratio of training data to use for validation")
+    parser.add_argument("--split_seed", type=int, default=42,
+                       help="Random seed for train/val split")
+    # ScanObjectNN specific parameters
+    parser.add_argument("--split_name", type=str, default="main_split", 
+                        help="ScanObjectNN split name (e.g., main_split, split1, etc.)")
+    parser.add_argument("--use_background", action="store_true", default=True,
+                        help="Use background points for ScanObjectNN (default: True)")
+    parser.add_argument("--no_background", action="store_false", dest="use_background",
+                        help="Exclude background points for ScanObjectNN")
+    parser.add_argument("--limit_samples", type=int, default=None,
+                        help="Limit number of samples per split (for testing)")
     return parser.parse_args(argv)
 
 def validate_cache_file(file_path):
@@ -60,7 +75,8 @@ def main():
     Saves extracted features as compressed numpy arrays for later fusion.
     """
     args = parse_args()
-    logger = PipelineLogger("extract_features")
+    log_file = os.path.join(args.output_dir, "extraction.log")
+    logger = PipelineLogger("extract_features", log_file=log_file)
     
     try:
         logger.info("Starting feature extraction...")
@@ -106,9 +122,40 @@ def main():
             device=device
         )
         
+        # Calculate safe batch size for logging
+        num_points = config['data']['num_points']
+        channels = 6 if config['data']['normal_channel'] else 3
+        points_shape = (batch_size, num_points, channels)
+        safe_batch_size = calculate_safe_batch_size(points_shape, device=device)
+        
+        logger.info("=" * 60)
+        logger.info("Feature Extraction Configuration")
+        logger.info("=" * 60)
+        logger.info(f"Dataset: {args.dataset_type}")
+        logger.info(f"Config file: {args.config}")
+        logger.info(f"PointNet checkpoint: {pointnet_checkpoint}")
+        logger.info(f"ULIP checkpoint: {ulip_checkpoint or 'dummy (random init)'}")
+        logger.info(f"OpenCLIP checkpoint: {openclip_checkpoint or 'not specified'}")
+        logger.info(f"Device: {device}")
+        logger.info(f"Batch size: {batch_size}")
+        logger.info(f"Safe batch size: {safe_batch_size}")
+        logger.info(f"Validation ratio: {args.val_ratio}")
+        logger.info(f"Split seed: {args.split_seed}")
+        logger.info(f"Output directory: {output_dir}")
+        logger.info(f"Skip if cached: {skip_if_cached}")
+        logger.info("=" * 60)
+        
         os.makedirs(output_dir, exist_ok=True)
         
-        for split in ["train", "test"]:
+        # Determine splits based on validation ratio
+        if args.val_ratio == 0:
+            splits = ["train", "test"]
+            logger.info("Validation ratio is 0, skipping validation split")
+        else:
+            splits = ["train", "val", "test"]
+            logger.info(f"Including validation split (ratio: {args.val_ratio})")
+        
+        for split in splits:
             output_path = os.path.join(output_dir, f"{split}_features.npz")
             if skip_if_cached and os.path.exists(output_path):
                 if validate_cache_file(output_path):
@@ -118,12 +165,6 @@ def main():
                     logger.warning(f"Cached file {output_path} corrupted or incomplete, re-extracting...")
             
             logger.info(f"Processing {split} split...")
-            
-            # Calculate safe batch size based on current GPU memory
-            num_points = config['data']['num_points']
-            channels = 6 if config['data']['normal_channel'] else 3
-            points_shape = (batch_size, num_points, channels)
-            safe_batch_size = calculate_safe_batch_size(points_shape, device=device)
             
             # Use the smaller of configured batch size and safe batch size
             final_batch_size = min(batch_size, safe_batch_size)
@@ -135,14 +176,32 @@ def main():
             else:
                 logger.info(f"Using batch size {final_batch_size} (safe batch size: {safe_batch_size})")
             
-            loader = ModelNet40Loader(
-                root_dir=data_dir,
-                split=split,
-                num_points=num_points,
-                normal_channel=config['data']['normal_channel'],
-                batch_size=final_batch_size
+            # Prepare loader arguments
+            loader_kwargs = {
+                'root_dir': data_dir,
+                'split': split,
+                'num_points': num_points,
+                'normal_channel': config['data']['normal_channel'],
+                'batch_size': final_batch_size
+            }
+            
+            # Add dataset-specific parameters for ScanObjectNN
+            if args.dataset_type == "scanobjectnn":
+                loader_kwargs.update({
+                    'split_name': args.split_name,
+                    'use_background': args.use_background
+                })
+            
+            loader = get_dataset_loader(
+                dataset_type=args.dataset_type,
+                val_ratio=args.val_ratio,
+                seed=args.split_seed,
+                **loader_kwargs
             )
-            logger.info(f"Processing {len(loader)} batches for {split} split")
+            logger.info(f"  Split: {split}")
+            logger.info(f"  Batch size: {final_batch_size}")
+            logger.info(f"  Number of batches: {len(loader)}")
+            logger.info(f"  Estimated samples: {len(loader) * final_batch_size}")
             
             all_features_pointnet = []
             all_features_ulip = []
@@ -199,7 +258,11 @@ def main():
                 ulip_features=features_ulip,
                 labels=labels
             )
-            logger.info(f"Saved {split} features to {output_path}")
+            logger.info(f"Saved {split} features: {output_path}")
+            logger.info(f"  PointNet features: {features_pointnet.shape}")
+            logger.info(f"  ULIP features: {features_ulip.shape}")
+            logger.info(f"  Labels: {labels.shape}")
+            logger.info(f"  Number of samples: {labels.shape[0]}")
             # Quick verification that file can be loaded
             if validate_cache_file(output_path):
                 logger.debug(f"Saved file validation passed for {output_path}")

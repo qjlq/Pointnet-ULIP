@@ -6,8 +6,8 @@ sys.path.insert(0, '.')
 import torch
 from libs.ulip_extractor import ULIPExtractor
 
-checkpoint = "../checkpoints/ULIP-2-PointBERT-10k-xyzrgb-pc-vit_g-objaverse_shapenet-pretrained.pt"
-openclip_checkpoint = "../checkpoints/open_clip_pytorch_model.bin"
+checkpoint = "checkpoints/ULIP-2-PointBERT-10k-xyzrgb-pc-vit_g-objaverse_shapenet-pretrained.pt"
+openclip_checkpoint = "checkpoints/open_clip_pytorch_model.bin"
 
 if not os.path.exists(checkpoint):
     print(f"ULIP checkpoint not found: {checkpoint}")

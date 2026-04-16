@@ -10,7 +10,7 @@ def main():
     logger.info("Starting pipeline validation...")
     
     # Check directory structure
-    required_dirs = ["scripts", "libs", "project_utils", "config"]
+    required_dirs = ["scripts", "libs", "utils", "config", "tests"]
     for dir_name in required_dirs:
         if not os.path.exists(dir_name):
             logger.error(f"Missing directory: {dir_name}")
@@ -23,9 +23,9 @@ def main():
         "scripts/train_fusion.py",
         "scripts/run_fusion_pipeline.py",
         "config/fusion_config.yaml",
-        "project_utils/config_parser.py",
-        "project_utils/logger.py",
-        "project_utils/checkpoint_manager.py",
+        "utils/config_parser.py",
+        "utils/logger.py",
+        "utils/checkpoint_manager.py",
         "libs/pointnet_extractor.py",
         "libs/ulip_extractor.py",
         "libs/dataset_loader.py",
@@ -61,8 +61,8 @@ def main():
     
     # Check that original codebases exist
     original_codebases = [
-        ("../pointnet_project", "PointNet2 codebase"),
-        ("../ULIP", "ULIP-2 codebase")
+        ("pointnet_project", "PointNet2 codebase"),
+        ("ULIP", "ULIP-2 codebase")
     ]
     
     for dir_path, description in original_codebases:
