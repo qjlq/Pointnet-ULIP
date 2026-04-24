@@ -71,16 +71,6 @@ python scripts/run_fusion_pipeline.py \
 - `scripts/run_fusion_pipeline.py` - End-to-end pipeline with experiment tracking
 - `scripts/download_checkpoints.py` - Download required checkpoint files
 
-## Documentation
-
-Detailed guides are available in the `docs/` directory:
-
-- [FULL_FUSION_PIPELINE_GUIDE.md](docs/FULL_FUSION_PIPELINE_GUIDE.md) - Complete pipeline workflow
-- [POINTNET2_TRAINING_GUIDE.md](docs/POINTNET2_TRAINING_GUIDE.md) - Training PointNet2 from scratch
-- [ULIP_TRAINING_GUIDE.md](docs/ULIP_TRAINING_GUIDE.md) - Training ULIP-2 from scratch
-- [SETUP_GUIDE.md](docs/SETUP_GUIDE.md) - Environment setup and CUDA compatibility
-- [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) - Project directory layout and purpose
-
 ## Configuration
 
 Edit `config/fusion_config.yaml` for default parameters.
