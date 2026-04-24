@@ -1,12 +1,4 @@
-# ULIP-2 + PointNet2 Fusion Pipeline
 
-A two-stage feature fusion pipeline for point cloud classification.
-
-## Results
-
-Real ULIP‑2 integration achieved **93.19%** accuracy on ModelNet40 test set, a **+0.89%** improvement over the PointNet‑only baseline (92.30%). The pipeline now uses the full pre‑trained ULIP‑2 checkpoint (`ULIP‑2‑PointBERT‑10k‑xyzrgb‑pc‑vit_g‑objaverse_shapenet‑pretrained.pt`) for 1280‑D semantic features, fused with 1024‑D PointNet2 geometric features.
-
-## Advanced Fusion Mechanisms
 
 The pipeline now supports multiple fusion mechanisms beyond simple concatenation:
 
